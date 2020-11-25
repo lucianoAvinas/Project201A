@@ -7,16 +7,19 @@ import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import normalize
 from matplotlib.colors import ListedColormap
+from sklearn.metrics import silhouette_score, calinski_harabasz_score, \
+                            davies_bouldin_score
 
 
 class DataPrep:
     # assumes overview.csv is in root folder
-    def __init__(self, data_dir, filetype, test_frac=0.20, seed=48):
+    def __init__(self, data_dir, test_frac=0.20, seed=48):
         # filetype (str): choices ['tiff', 'npy']
         csv_dat = pandas.read_csv('overview.csv')
         n = len(csv_dat)
 
         contrast_id = np.array(csv_dat['Contrast'])
+        filetype = (os.listdir(data_dir)[0]).split('.')[-1]
 
         if 'tif' in filetype:
             file_paths = [None]*n
@@ -41,10 +44,10 @@ class DataPrep:
     def get_test(self):
         data_struct = {'train':None, 'test':None}
 
-        # in case test_frac = 0, supply None
+        # in case test_len = 0, supply None
         data_struct['train'] = (self.data[:-self.test_len or None,:,:], 
                                 self.out_ids[:-self.test_len or None])
-        if test_frac == 0:
+        if self.test_len == 0:
             data_struct['test'] = (np.array([]), np.array([]))
         else:
             data_struct['test'] = (self.data[-self.test_len:,:,:], 
@@ -52,7 +55,7 @@ class DataPrep:
         return data_struct
 
     def get_kfold(self, k):
-        # in case test_frac = 0, supply None
+        # in case test_len = 0, supply None
         data_subset = self.data[:-self.test_len or None,:,:]
         out_subset = self.out_ids[:-self.test_len or None]
         data_struct = {'train':None, 'valid':None}
@@ -75,6 +78,9 @@ def TSNE_wrapper(data, perplexity, early_exaggeration, learning_rate, n_iter):
     tsne_obj = TSNE(perplexity=perplexity, early_exaggeration=early_exaggeration,
                     learning_rate=learning_rate, n_iter=n_iter,
                     n_iter_without_progress=n_iter, method='exact')
+    # Acceptable value ranges:
+    # perplexity \in [5, 50], early_exaggeration \in [1, 100]
+    # learning_rate \in [10, 1000], n_iter \in [250, 2500]
     return tsne_obj.fit_transform(normalize(data.reshape(data.shape[0], -1)))
 
 
@@ -110,11 +116,58 @@ def plot_embedding(X_embed, y):
 
 
 def default_cluster_stats(data_dir):
-    filetype = (os.listdir(data_dir)[0]).split('.')[-1]
-    data = DataPrep(data_dir, filetype)
+    data = DataPrep(data_dir)
 
     all_train = data.get_test()['train']
     X_embed = TSNE_wrapper(all_train[0], 30, 12, 200, 1000)
     cluster_stats = cluster_calcs(X_embed, all_train[1])
 
     return cluster_calcs
+
+def all_metric_evals():
+    # We have ground truths but no predicted clusters
+    # To keep it simple I will just use the no groundtruth metic evaluations
+    metrics = {'Silhoutte': silhouette_score, 
+               'Calinski': calinski_harabasz_score, 
+               'Davies': davies_bouldin_score}
+
+    # defined in preprocess.produce_all_datasets
+    sizes = [8, 16, 32, 64, 128]
+    dims = [8, 16, 32, 64, 100]
+    n1 = len(sizes)
+    n2 = len(dims)
+
+    ticks = sorted(list(set(sizes) | set(dims)))
+
+    for name, func in metrics.items():
+        resample = [None]*n1
+        for i in range(n1):
+            data_dir = os.path.join('resampled_tiffs', str(sizes[i]))
+            data = DataPrep(data_dir).get_test()['train']
+            X_embed = TSNE_wrapper(data[0], 30, 12, 200, 1000)
+
+            resample[i] = func(X_embed, data[1])
+
+        dimreduc = [None]*n2
+        for i in range(n2):
+            data_dir = os.path.join('dimension_reduced', str(dims[i]))
+            data = DataPrep(data_dir).get_test()['train']
+            X_embed = TSNE_wrapper(data[0], 30, 12, 200, 1000)
+
+            dimreduc[i] = func(X_embed, data[1])
+
+        subtitle = ' (Higher is Better)'
+        if name == 'Davies':
+            subtitle = ' (Lower is Better)'
+
+        plt.plot(sizes, resample, label='Downsampled')
+        plt.plot(dims, dimreduc, label='PCA-Reduced')
+        plt.xlabel('Dimension or Sidelength')
+        plt.ylabel('Metric Score')
+        plt.title(name+subtitle)
+        plt.legend()
+        plt.xticks(ticks, ticks)
+
+        plt.savefig(name+'.png')
+        plt.cla()
+        plt.clf()

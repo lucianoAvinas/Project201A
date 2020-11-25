@@ -5,6 +5,7 @@ import shutil
 import numpy as np
 
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import normalize
 
 
 def resample_images(new_size, input_dir='tiff_images', output_dir='resampled_tiffs'):
@@ -37,3 +38,11 @@ def pcareduce_images(reduc_dim, input_dir='tiff_images', output_dir='dimension_r
     tiff_reduc = PCA(n_components=reduc_dim).fit_transform(normalize(
                                               tiff_stack.reshape(tiff_stack.shape[0], -1)))
     np.save(os.path.join(new_dir, 'all_data.npy'), tiff_reduc)
+
+
+def produce_all_datasets():
+    for sz in [8, 16, 32, 64, 128]:
+        resample_images(sz)
+
+    for dim in [8, 16, 32, 64, 100]:
+        pcareduce_images(dim)
