@@ -77,7 +77,7 @@ class DataPrep:
 def TSNE_wrapper(data, perplexity, early_exaggeration, learning_rate, n_iter):
     tsne_obj = TSNE(perplexity=perplexity, early_exaggeration=early_exaggeration,
                     learning_rate=learning_rate, n_iter=n_iter,
-                    n_iter_without_progress=n_iter, method='exact')
+                    n_iter_without_progress=n_iter, min_grad_norm=0, method='exact')
     # Acceptable value ranges:
     # perplexity \in [5, 50], early_exaggeration \in [1, 100]
     # learning_rate \in [10, 1000], n_iter \in [250, 2500]

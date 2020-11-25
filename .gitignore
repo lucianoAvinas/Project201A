@@ -1,3 +1,4 @@
 dimension_reduced/
 resampled_tiffs/
 tiff_images/
+__pycache__/
