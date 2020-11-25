@@ -81,7 +81,7 @@ def TSNE_wrapper(data, perplexity, early_exaggeration, learning_rate, n_iter):
     # Acceptable value ranges:
     # perplexity \in [5, 50], early_exaggeration \in [1, 100]
     # learning_rate \in [10, 1000], n_iter \in [250, 2500]
-    return tsne_obj.fit_transform(normalize(data.reshape(data.shape[0], -1)))
+    return tsne_obj.fit_transform(data.reshape(data.shape[0], -1))
 
 
 def cluster_calcs(X_embed, y):
@@ -122,7 +122,7 @@ def default_cluster_stats(data_dir):
     X_embed = TSNE_wrapper(all_train[0], 30, 12, 200, 1000)
     cluster_stats = cluster_calcs(X_embed, all_train[1])
 
-    return cluster_calcs
+    return cluster_stats
 
 def all_metric_evals():
     # We have ground truths but no predicted clusters
@@ -171,3 +171,39 @@ def all_metric_evals():
         plt.savefig(name+'.png')
         plt.cla()
         plt.clf()
+
+"""
+def gmix_eval():
+    metrics = {'Silhoutte': silhouette_score, 
+               'Calinski': calinski_harabasz_score, 
+               'Davies': davies_bouldin_score}
+    ncomps = range(5, 11)
+    n = len(ncomps)
+
+    for name, func in metrics.items():
+        ord_mu = [None]*n
+        disc_img = [None]*n
+        for i in range(n):
+            main_dir = os.path.join('gauss_mixtures', str(ncomps[i]))
+            data_dir1 = os.path.join(main_dir, 'comp_vector')
+            data = DataPrep(data_dir1).get_test()['train']
+            X_embed = TSNE_wrapper(data[0], 30, 12, 200, 1000)
+            ord_mu[i] = func(X_embed, data[1])
+
+            data_dir2 = os.path.join(main_dir, 'comp_images')
+            data = DataPrep(data_dir2).get_test()['train']
+            X_embed = TSNE_wrapper(data[0], 30, 12, 200, 1000)
+            disc_img[i] = func(X_embed, data[1])
+
+        subtitle = ' (Higher is Better)'
+        if name == 'Davies':
+            subtitle = ' (Lower is Better)'
+
+        plt.plot(ncomps, ord_mu, label='Ordered ' + r'$\mu$')
+        plt.plot(ncomps, disc_img, label='Discrete Image')
+        plt.xlabel('Mixture Components')
+        plt.ylabel('Metric Score')
+        plt.title('Gauss Mix '+name+subtitle)
+        plt.legend()
+        plt.show()
+"""

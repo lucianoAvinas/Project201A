@@ -2,3 +2,5 @@ dimension_reduced/
 resampled_tiffs/
 tiff_images/
 __pycache__/
+gauss_mixtures/
+gauss_resampled/
