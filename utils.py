@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn.manifold import TSNE
+from sklearn.cluster import KMeans
 from sklearn.preprocessing import normalize
 from matplotlib.colors import ListedColormap
 from sklearn.metrics import silhouette_score, calinski_harabasz_score, \
@@ -101,6 +102,15 @@ def cluster_calcs(X_embed, y):
     return intra_l2, inter_l2
 
 
+def class_acc(X_embed, y):
+    kmeans_obj = KMeans(2)
+    y_pred = kmeans_obj.fit_predict(X_embed).astype(bool)
+
+    # labels may be permuted
+    y_pred = ~y_pred if np.mean(y[y_pred]) < 0.5 else y_pred
+    return np.sum(y_pred == y)/len(y)
+
+
 def intra_calc(X):
     n = X.shape[0]
     X_mean = X.mean(axis=0)
@@ -127,9 +137,9 @@ def default_cluster_stats(data_dir):
 def all_metric_evals():
     # We have ground truths but no predicted clusters
     # To keep it simple I will just use the no groundtruth metic evaluations
-    metrics = {'Silhoutte': silhouette_score, 
-               'Calinski': calinski_harabasz_score, 
-               'Davies': davies_bouldin_score}
+    metrics = [silhouette_score, calinski_harabasz_score, 
+                davies_bouldin_score]
+    metric_names = ['Silhoutte', 'Calinski', 'Davies']
 
     # defined in preprocess.produce_all_datasets
     sizes = [8, 16, 32, 64, 128]
@@ -139,29 +149,33 @@ def all_metric_evals():
 
     ticks = sorted(list(set(sizes) | set(dims)))
 
-    for name, func in metrics.items():
-        resample = [None]*n1
-        for i in range(n1):
-            data_dir = os.path.join('resampled_tiffs', str(sizes[i]))
-            data = DataPrep(data_dir).get_test()['train']
-            X_embed = TSNE_wrapper(data[0], 30, 12, 200, 1000)
+    resample = np.zeros((len(metrics), n1))
+    for i in range(n1):
+        data_dir = os.path.join('resampled_tiffs', str(sizes[i]))
+        data = DataPrep(data_dir).get_test()['train']
+        X_embed = TSNE_wrapper(data[0], 30, 12, 200, 1000)
 
-            resample[i] = func(X_embed, data[1])
+        for k in range(len(metrics)):
+            resample[k, i] = metrics[k](X_embed, data[1])
 
-        dimreduc = [None]*n2
-        for i in range(n2):
-            data_dir = os.path.join('dimension_reduced', str(dims[i]))
-            data = DataPrep(data_dir).get_test()['train']
-            X_embed = TSNE_wrapper(data[0], 30, 12, 200, 1000)
+    dimreduc = np.zeros((len(metrics), n2))
+    for i in range(n2):
+        data_dir = os.path.join('dimension_reduced', str(dims[i]))
+        data = DataPrep(data_dir).get_test()['train']
+        X_embed = TSNE_wrapper(data[0], 30, 12, 200, 1000)
 
-            dimreduc[i] = func(X_embed, data[1])
+        for k in range(len(metrics)):
+            dimreduc[k, i] = metrics[k](X_embed, data[1])
+
+    for k in range(len(metrics)):
+        name = metric_names[k]
 
         subtitle = ' (Higher is Better)'
         if name == 'Davies':
             subtitle = ' (Lower is Better)'
 
-        plt.plot(sizes, resample, label='Downsampled')
-        plt.plot(dims, dimreduc, label='PCA-Reduced')
+        plt.plot(sizes, resample[k], label='Downsampled')
+        plt.plot(dims, dimreduc[k], label='PCA-Reduced')
         plt.xlabel('Dimension or Sidelength')
         plt.ylabel('Metric Score')
         plt.title(name+subtitle)
