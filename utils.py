@@ -185,6 +185,17 @@ def all_metric_evals():
         plt.savefig(name+'.png')
         plt.cla()
         plt.clf()
+        
+def calculate_response(data, labels, perplexity, early_exaggeration, learning_rate, n_iter):
+    metrics = [silhouette_score, calinski_harabasz_score, 
+                davies_bouldin_score, class_acc]
+
+    response = np.zeros(len(metrics))
+    X_embed = TSNE_wrapper(data, perplexity, early_exaggeration, learning_rate, n_iter)
+    
+    for i in range(len(metrics)):
+        response[i] = metrics[i](X_embed, labels)
+    return response
 
 """
 def gmix_eval():
