@@ -8,6 +8,9 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import normalize
 from sklearn.mixture import GaussianMixture
 
+from rpy2.robjects.packages import importr
+from rpy2.robjects.vectors import IntVector
+
 
 def resample_images(new_size, input_dir='tiff_images', output_dir='resampled_tiffs'):
     # new_size (int): new image sidelength
@@ -87,3 +90,40 @@ def produce_all_datasets():
 
     #for n_comp in range(5, 11):
     #    gaussmix_images(n_comp)
+
+    design = gen_maxpro_pnts(500)
+
+    np.save(os.path.join('experiment_data', 'design_points.npy'), design)
+
+
+def to_design(unif_arr):
+    unif_arr = np.array(unif_arr)
+    unif_arr[:,0] = unif_arr[:,0]*45 + 5
+    unif_arr[:,1] = unif_arr[:,1]*99 + 1
+    unif_arr[:,2] = unif_arr[:,2]*990 + 10
+    unif_arr[:,3] = np.floor(unif_arr[:,3]*2250 + 250)
+
+    return unif_arr
+
+
+def to_01(design_arr):
+    design_arr = np.array(design_arr)
+    design_arr[:,0] = (design_arr[:,0]-5)/45
+    design_arr[:,1] = (design_arr[:,1]-1)/99
+    design_arr[:,2] = (design_arr[:,2]-10)/990
+    design_arr[:,3] = (design_arr[:,3]-250)/2250
+    
+    return design_arr
+
+
+def gen_maxpro_pnts(N):
+    rutils = importr('utils')
+    rutils.chooseCRANmirror(ind=1)
+    MaxPro = importr('MaxPro')
+
+    cand = MaxPro.CandPoints(N, p_cont=3, l_disnum=IntVector([2251]))
+    out_cand = MaxPro.MaxPro(cand)
+
+    design_pnts = np.array(out_cand[0])
+
+    return to_design(design_pnts)

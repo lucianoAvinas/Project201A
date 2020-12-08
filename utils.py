@@ -77,7 +77,7 @@ class DataPrep:
 
 def TSNE_wrapper(data, perplexity, early_exaggeration, learning_rate, n_iter):
     tsne_obj = TSNE(perplexity=perplexity, early_exaggeration=early_exaggeration,
-                    learning_rate=learning_rate, n_iter=n_iter,
+                    learning_rate=learning_rate, n_iter=int(n_iter),
                     n_iter_without_progress=n_iter, min_grad_norm=0, method='exact')
     # Acceptable value ranges:
     # perplexity \in [5, 50], early_exaggeration \in [1, 100]
@@ -119,10 +119,66 @@ def intra_calc(X):
     return 2*n*np.sum(diff*diff), X_mean
 
 
+def varied_tsne():
+    X, y = DataPrep(os.path.join('resampled_tiffs', '64')).get_test()['train']
+    for i in range(4):
+        X_embed = TSNE_wrapper(X, 30, 12, 200, 1000)
+
+        plt.rcParams["figure.figsize"] = (14, 14)
+        plt.rcParams.update({'font.size': 22})
+        sc = plt.scatter(X_embed[:,0], X_embed[:,1], s=100, c=y, cmap=ListedColormap(['blue', 'red']))
+        L = plt.legend(*sc.legend_elements())
+        L.get_texts()[0].set_text('No Contrast')
+        L.get_texts()[1].set_text('Contrast Added')
+        plt.savefig(os.path.join('presentation_imgs', f'tsne_rep{i}.png'), dpi=400)
+        plt.cla(), plt.clf()
+
+
+
+def save_ct():
+    table = pandas.read_csv('overview.csv')
+
+    noc_img = tifffile.imread(os.path.join('tiff_images',table['tiff_name'][5]))
+    c_img = tifffile.imread(os.path.join('tiff_images',table['tiff_name'][57]))
+    noc_img_64 = tifffile.imread(os.path.join('resampled_tiffs','64',table['tiff_name'][5]))
+    c_img_64 = tifffile.imread(os.path.join('resampled_tiffs','64',table['tiff_name'][57]))
+
+    vmax = max(np.max(noc_img), np.max(c_img), np.max(noc_img_64), np.max(c_img_64))
+    vmin = min(np.min(noc_img), np.min(c_img), np.min(noc_img_64), np.min(c_img_64))
+
+    names = ['no_contrast.png', 'contrast.png', 'no_contrast_64.png', 'contrast_64.png']
+    imgs = [noc_img, c_img, noc_img_64, c_img_64]
+    plt.rcParams["figure.figsize"] = (14, 14)
+    for i in range(4):
+        plt.imshow(imgs[i], plt.cm.gray, vmin=vmin, vmax=vmax)
+        plt.axis('off')
+        plt.savefig(os.path.join('presentation_imgs', names[i]), dpi=400)
+        plt.cla(), plt.clf()
+
+
 def plot_embedding(X_embed, y):
     # blue is no contrast added, red is contrast added
-    plt.scatter(X_embed[:,0], X_embed[:,1], c=y, cmap=ListedColormap(['blue', 'red']))
-    plt.show()
+    plt.rcParams["figure.figsize"] = (14, 14)
+    plt.rcParams.update({'font.size': 22})
+    sc = plt.scatter(X_embed[:,0], X_embed[:,1], s=100, c=y, cmap=ListedColormap(['blue', 'red']))
+    L = plt.legend(*sc.legend_elements())
+    L.get_texts()[0].set_text('No Contrast')
+    L.get_texts()[1].set_text('Contrast Added')
+    plt.savefig(os.path.join('presentation_imgs', 'true_labels.png'), dpi=400)
+    plt.cla(), plt.clf()
+
+    kmeans_obj = KMeans(2)
+    y_pred = kmeans_obj.fit_predict(X_embed).astype(bool)
+    y_pred = ~y_pred if np.mean(y[y_pred]) < 0.5 else y_pred
+
+    sc = plt.scatter(X_embed[:,0], X_embed[:,1], s=100, c=y_pred, cmap=ListedColormap(['blue', 'red']))
+    L = plt.legend(*sc.legend_elements())
+    L.get_texts()[0].set_text('No Contrast')
+    L.get_texts()[1].set_text('Contrast Added')
+    plt.savefig(os.path.join('presentation_imgs', 'pred_labels.png'), dpi=400)
+    plt.cla(), plt.clf()
+
+    print('Pred Acc:', np.sum(y_pred == y)/len(y))
 
 
 def default_cluster_stats(data_dir):
@@ -138,8 +194,8 @@ def all_metric_evals():
     # We have ground truths but no predicted clusters
     # To keep it simple I will just use the no groundtruth metic evaluations
     metrics = [silhouette_score, calinski_harabasz_score, 
-                davies_bouldin_score]
-    metric_names = ['Silhoutte', 'Calinski', 'Davies']
+                davies_bouldin_score, class_acc]
+    metric_names = ['Silhoutte', 'Calinski', 'Davies', 'Accuracy']
 
     # defined in preprocess.produce_all_datasets
     sizes = [8, 16, 32, 64, 128]
@@ -196,39 +252,3 @@ def calculate_response(data, labels, perplexity, early_exaggeration, learning_ra
     for i in range(len(metrics)):
         response[i] = metrics[i](X_embed, labels)
     return response
-
-"""
-def gmix_eval():
-    metrics = {'Silhoutte': silhouette_score, 
-               'Calinski': calinski_harabasz_score, 
-               'Davies': davies_bouldin_score}
-    ncomps = range(5, 11)
-    n = len(ncomps)
-
-    for name, func in metrics.items():
-        ord_mu = [None]*n
-        disc_img = [None]*n
-        for i in range(n):
-            main_dir = os.path.join('gauss_mixtures', str(ncomps[i]))
-            data_dir1 = os.path.join(main_dir, 'comp_vector')
-            data = DataPrep(data_dir1).get_test()['train']
-            X_embed = TSNE_wrapper(data[0], 30, 12, 200, 1000)
-            ord_mu[i] = func(X_embed, data[1])
-
-            data_dir2 = os.path.join(main_dir, 'comp_images')
-            data = DataPrep(data_dir2).get_test()['train']
-            X_embed = TSNE_wrapper(data[0], 30, 12, 200, 1000)
-            disc_img[i] = func(X_embed, data[1])
-
-        subtitle = ' (Higher is Better)'
-        if name == 'Davies':
-            subtitle = ' (Lower is Better)'
-
-        plt.plot(ncomps, ord_mu, label='Ordered ' + r'$\mu$')
-        plt.plot(ncomps, disc_img, label='Discrete Image')
-        plt.xlabel('Mixture Components')
-        plt.ylabel('Metric Score')
-        plt.title('Gauss Mix '+name+subtitle)
-        plt.legend()
-        plt.show()
-"""
