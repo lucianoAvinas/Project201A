@@ -117,6 +117,3 @@ def optim_lenscale(kern_type):
 
     return minimize(nll, np.array([-7, 2.2]), jac=d_nll, 
                     bounds=[(None, np.log(s2_total)), (None, None)])
-
-
-def 
