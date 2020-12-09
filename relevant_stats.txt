@@ -1,5 +1,5 @@
 Total Measure Sample Variance: 0.00239413
-Matern GP Diagonal Variance: 9.232834e-04
+Matern GP Diagonal Variance: 1.27786888e-03
 Y Model Error Variance: Total - Matern
 
 pred_labels.png accuracy: 63.75%
@@ -8,21 +8,22 @@ Metamodel within k multiple of y model error sigma:
 (metamodel is trained only on Design Inputs with n=80 TSNE)
 
 Design
-Fraction within 1 sd: 0.734
-Fraction within 2 sd: 0.926
-Fraction within 3 sd: 0.996
-
-Unseen Points
-Fraction within 1 sd: 0.79
-Fraction within 2 sd: 0.904
-Fraction within 3 sd: 0.98
-
-Design with Added Scans (n=100 TSNE)
-Fraction within 1 sd: 0.74
-Fraction within 2 sd: 0.894
+Fraction within 1 sd: 0.73
+Fraction within 2 sd: 0.924
 Fraction within 3 sd: 0.986
 
+Unseen Points
+Fraction within 1 sd: 0.772
+Fraction within 2 sd: 0.88
+Fraction within 3 sd: 0.968
+
+Design with Added Scans (n=100 TSNE)
+Fraction within 1 sd: 0.686
+Fraction within 2 sd: 0.866
+Fraction within 3 sd: 0.962
+
 Unseen Points with Added Scans (n=100 TSNE)
-Fraction within 1 sd: 0.796
-Fraction within 2 sd: 0.896
-Fraction within 3 sd: 0.984
+Fraction within 1 sd: 0.742
+Fraction within 2 sd: 0.86
+Fraction within 3 sd: 0.946
+

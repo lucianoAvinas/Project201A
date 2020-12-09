@@ -10,8 +10,10 @@ from multiprocessing import Pool
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import Matern, RBF, ConstantKernel as C
 
-MATERN_ELL = 2.718492
-MATERN_SIG2 = 9.232834e-04
+#MATERN_ELL = 2.718492
+#MATERN_SIG2 = 9.232834e-04
+MATERN_ELL = 2.73178833
+MATERN_SIG2 = 1.27786888e-03
 
 RBF_ELL = 2.396396
 RBF_SIG2 = 9.26446e-04

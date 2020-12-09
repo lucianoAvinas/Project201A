@@ -21,7 +21,7 @@ def rbf_funcs(D, s2_total):
         ell = np.exp(theta2)
 
         jac_material = [None, None]
-        jac_material[0] = np.exp(-D2/(2 * ell**2)) - np.eye(n)
+        jac_material[0] = sig*np.exp(-D2/(2 * ell**2)) - sig*np.eye(n)
         jac_material[1] = sig*np.exp(-D2/(2 * ell**2)) * D2/ell**2
 
         return jac_material
@@ -44,7 +44,7 @@ def matern3_2_funcs(D, s2_total):
         ell = np.exp(theta2)
 
         jac_material = [None, None]
-        jac_material[0] = (1+np.sqrt(3)*D/ell)*np.exp(-np.sqrt(3)*D/ell) - np.eye(n)
+        jac_material[0] = sig*(1+np.sqrt(3)*D/ell)*np.exp(-np.sqrt(3)*D/ell) - sig*np.eye(n)
         jac_material[1] = sig*3*D2/ell**2 * np.exp(-np.sqrt(3)*D/ell)
 
         return jac_material
@@ -68,7 +68,7 @@ def matern5_2_funcs(D, s2_total):
         ell = np.exp(theta2)
 
         jac_material = [None, None]
-        jac_material[0] = (1+np.sqrt(5)*D/ell+5*D2/(3*ell**2))*np.exp(-np.sqrt(5)*D/ell) - np.eye(n)
+        jac_material[0] = sig*(1+np.sqrt(5)*D/ell+5*D2/(3*ell**2))*np.exp(-np.sqrt(5)*D/ell) - sig*np.eye(n)
         jac_material[1] = sig*5*D2/(3*ell**2)*(1+D*np.sqrt(5)/ell)*np.exp(-np.sqrt(5)*D/ell)
 
         return jac_material
@@ -101,7 +101,7 @@ def optim_lenscale(kern_type):
         K = kern(theta1, theta2)
         K_inv = np.linalg.solve(K, np.eye(n))
 
-        return np.dot(y, K_inv.dot(y)) + np.linalg.slogdet(K)
+        return np.dot(y, K_inv.dot(y)) + np.linalg.slogdet(K)[1]
 
     def d_nll(theta):
         theta1, theta2 = theta
@@ -115,5 +115,5 @@ def optim_lenscale(kern_type):
         jacs[1] = -np.einsum('ij,ji->', mat1, jac_material[1]) 
         return jacs
 
-    return minimize(nll, np.array([-7, 2.2]), jac=d_nll, 
+    return minimize(nll, np.array([-7, 2.2]), jac=d_nll,
                     bounds=[(None, np.log(s2_total)), (None, None)])
